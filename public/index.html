@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager API Interface</title>
+  <style>
+      body { font-family: Arial, sans-serif; }
+      form { margin-bottom: 20px; }
+      input { margin: 5px; }
+      button { margin: 5px; }
+      .task-list { margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<h1>Task Manager</h1>
+
+<!-- Create Task Form -->
+<h2>Create Task</h2>
+<form id="create-task-form">
+  <input type="text" id="create-title" placeholder="Title" required>
+  <input type="text" id="create-description" placeholder="Description" required>
+  <button type="submit">Create Task</button>
+</form>
+
+<!-- Get All Tasks Button -->
+<h2>Get All Tasks</h2>
+<button id="get-all-tasks">Load All Tasks</button>
+<div id="tasks" class="task-list"></div>
+
+<!-- Get Task by ID Form -->
+<h2>Get Task by ID</h2>
+<form id="get-task-form">
+  <input type="text" id="get-task-id" placeholder="Task ID" required>
+  <button type="submit">Get Task</button>
+</form>
+<div id="task-details"></div>
+
+<!-- Update Task Form -->
+<h2>Update Task by ID</h2>
+<form id="update-task-form">
+  <input type="text" id="update-task-id" placeholder="Task ID" required>
+  <input type="text" id="update-title" placeholder="New Title">
+  <input type="text" id="update-description" placeholder="New Description">
+  <button type="submit">Update Task</button>
+</form>
+
+<!-- Delete Task Form -->
+<h2>Delete Task by ID</h2>
+<form id="delete-task-form">
+  <input type="text" id="delete-task-id" placeholder="Task ID" required>
+  <button type="submit">Delete Task</button>
+</form>
+
+<script>
+  const apiUrl = 'http://localhost:3000/tasks';
+
+  // Create Task
+  document.getElementById('create-task-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('create-title').value;
+    const description = document.getElementById('create-description').value;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description }),
+    });
+    const data = await response.json();
+    alert(`Task created: ${JSON.stringify(data)}`);
+    loadAllTasks();
+  });
+
+  // Load All Tasks
+  document.getElementById('get-all-tasks').addEventListener('click', async () => {
+    loadAllTasks();
+  });
+
+  const loadAllTasks = async () => {
+    const response = await fetch(apiUrl);
+    const tasks = await response.json();
+    const tasksDiv = document.getElementById('tasks');
+    tasksDiv.innerHTML = '';
+    tasks.forEach(task => {
+      tasksDiv.innerHTML += `<p>ID: ${task.id} | Title: ${task.title} | Description: ${task.description} | Completed: ${task.completed}</p>`;
+    });
+  };
+
+  // Get Task by ID
+  document.getElementById('get-task-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const taskId = document.getElementById('get-task-id').value;
+    const response = await fetch(`${apiUrl}/${taskId}`);
+    const task = await response.json();
+    document.getElementById('task-details').innerHTML = `<p>Task: ${JSON.stringify(task)}</p>`;
+  });
+
+  // Update Task by ID
+  document.getElementById('update-task-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const taskId = document.getElementById('update-task-id').value;
+    const title = document.getElementById('update-title').value;
+    const description = document.getElementById('update-description').value;
+
+    const updatedTask = {};
+    if (title) updatedTask.title = title;
+    if (description) updatedTask.description = description;
+
+    const response = await fetch(`${apiUrl}/${taskId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedTask),
+    });
+    const data = await response.json();
+    alert(`Task updated: ${JSON.stringify(data)}`);
+    loadAllTasks();
+  });
+
+  // Delete Task by ID
+  document.getElementById('delete-task-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const taskId = document.getElementById('delete-task-id').value;
+    await fetch(`${apiUrl}/${taskId}`, {
+      method: 'DELETE',
+    });
+    alert('Task deleted');
+    loadAllTasks();
+  });
+</script>
+
+</body>
+</html>
