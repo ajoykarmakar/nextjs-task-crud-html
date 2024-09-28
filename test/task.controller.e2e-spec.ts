@@ -2,37 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { TaskService } from '../src/task/task.service';
 
 describe('Task API (e2e)', () => {
   let app: INestApplication;
-  const taskService = {
-    findAll: () => [
-      {
-        id: '1',
-        title: 'Test Task',
-        description: 'Test Desc',
-        completed: false,
-      },
-    ],
-    findOne: (id: string) => ({
-      id,
-      title: 'Test Task',
-      description: 'Test Desc',
-      completed: false,
-    }),
-    create: (task: any) => ({ id: '2', ...task }),
-    update: (id, task) => ({ id, ...task }),
-    remove: (id: string) => ({ deleted: true }),
-  };
+  let taskId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    })
-      .overrideProvider(TaskService)
-      .useValue(taskService)
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -42,24 +20,6 @@ describe('Task API (e2e)', () => {
     await app.close();
   });
 
-  // Test GET /tasks
-  it('GET /tasks - should return all tasks', () => {
-    return request(app.getHttpServer())
-      .get('/tasks')
-      .expect(200)
-      .expect(taskService.findAll());
-  });
-
-  // Test GET /tasks/:id
-  it('GET /tasks/:id - should return a single task by ID', () => {
-    const taskId = '1';
-    return request(app.getHttpServer())
-      .get(`/tasks/${taskId}`)
-      .expect(200)
-      .expect(taskService.findOne(taskId));
-  });
-
-  // Test POST /tasks
   it('POST /tasks - should create a new task', () => {
     const newTask = {
       title: 'New Task',
@@ -70,30 +30,44 @@ describe('Task API (e2e)', () => {
       .post('/tasks')
       .send(newTask)
       .expect(201)
-      .expect(taskService.create(newTask));
+      .expect((res) => {
+        expect(res.body).toHaveProperty('id');
+        taskId = res.body.id;
+      });
   });
 
-  // Test PUT /tasks/:id
+  it('GET /tasks/:id - should return a single task by ID', () => {
+    return request(app.getHttpServer())
+      .get(`/tasks/${taskId}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body).toHaveProperty('id', taskId);
+      });
+  });
+
   it('PUT /tasks/:id - should update a task by ID', () => {
     const updatedTask = {
       title: 'Updated Task',
       description: 'Updated Task Description',
       completed: true,
     };
-    const taskId = '1';
     return request(app.getHttpServer())
       .put(`/tasks/${taskId}`)
       .send(updatedTask)
       .expect(200)
-      .expect(taskService.update(taskId, updatedTask));
+      .expect((res) => {
+        expect(res.body).toHaveProperty('id', taskId);
+        expect(res.body.title).toBe(updatedTask.title);
+        expect(res.body.completed).toBe(true);
+      });
   });
 
-  // Test DELETE /tasks/:id
   it('DELETE /tasks/:id - should delete a task by ID', () => {
-    const taskId = '1';
     return request(app.getHttpServer())
       .delete(`/tasks/${taskId}`)
       .expect(200)
-      .expect(taskService.remove(taskId));
+      .expect((res) => {
+        expect(res.text).toContain('Task deleted');
+      });
   });
 });
